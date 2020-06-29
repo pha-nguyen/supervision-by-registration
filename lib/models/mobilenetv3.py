@@ -275,7 +275,6 @@ class MobileNetV3(nn.Module):
         feature = self.features(x)
         # print(feature.shape)
         xfeature = self.CPM_feature(feature)
-        print(xfeature.shape)
         for i in range(self.num_stgs):
             if i == 0:
                 cpm = self.stages[i](xfeature)
