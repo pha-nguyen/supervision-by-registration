@@ -27,8 +27,8 @@ def obtain_args():
   parser.add_argument('--scale_max',        type=float,                 help='argument scale : maximum scale factor.')
   parser.add_argument('--scale_eval',       type=float,                 help='argument scale : maximum scale factor.')
   parser.add_argument('--rotate_max',       type=int,                   help='argument rotate : maximum rotate degree.')
-  parser.add_argument('--crop_height',      type=int,   default=256,    help='argument crop : crop height.')
-  parser.add_argument('--crop_width',       type=int,   default=256,    help='argument crop : crop width.')
+  parser.add_argument('--crop_height',      type=int,   default=112,    help='argument crop : crop height.')
+  parser.add_argument('--crop_width',       type=int,   default=112,    help='argument crop : crop width.')
   parser.add_argument('--crop_perturb_max', type=int,                   help='argument crop : center of maximum perturb distance.')
   parser.add_argument('--arg_flip',         action='store_true',        help='Using flip data argumentation or not ')
   # Optimization options
@@ -40,7 +40,7 @@ def obtain_args():
   parser.add_argument('--init_model',       type=str,                   help='The detector model to be initalized.')
   parser.add_argument('--save_path',        type=str,                   help='Folder to save checkpoints and log.')
   # Acceleration
-  parser.add_argument('--workers',          type=int,   default=8,      help='number of data loading workers (default: 2)')
+  parser.add_argument('--workers',          type=int,   default=16,      help='number of data loading workers (default: 2)')
   # Random Seed
   parser.add_argument('--rand_seed',        type=int,                   help='manual seed')
   args = parser.parse_args()

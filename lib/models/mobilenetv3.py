@@ -1,9 +1,59 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numbers
+import math
+import numpy as np
 
 
 __all__ = ['MobileNetV3', 'mobilenetv3']
+
+
+def find_tensor_peak_batch(heatmap, radius, downsample, threshold=0.000001):
+    assert heatmap.dim() == 3, 'The dimension of the heatmap is wrong : {}'.format(heatmap.size())
+    assert radius > 0 and isinstance(
+        radius, numbers.Number), 'The radius is not ok : {}'.format(radius)
+    num_pts, H, W = heatmap.size(0), heatmap.size(1), heatmap.size(2)
+    assert W > 1 and H > 1, 'To avoid the normalization function divide zero'
+    # find the approximate location:
+    score, index = torch.max(heatmap.view(num_pts, -1), 1)
+    index_w = (index % W).float()
+    index_h = (index / W).float()
+
+    def normalize(x, L):
+        return -1. + 2. * x.data / (L-1)
+    boxes = [index_w - radius, index_h - radius,
+             index_w + radius, index_h + radius]
+    boxes[0] = normalize(boxes[0], W)
+    boxes[1] = normalize(boxes[1], H)
+    boxes[2] = normalize(boxes[2], W)
+    boxes[3] = normalize(boxes[3], H)
+    # affine_parameter = [(boxes[2]-boxes[0])/2, boxes[0]*0, (boxes[2]+boxes[0])/2,
+    #                   boxes[0]*0, (boxes[3]-boxes[1])/2, (boxes[3]+boxes[1])/2]
+    #theta = torch.stack(affine_parameter, 1).view(num_pts, 2, 3)
+
+    affine_parameter = torch.zeros((num_pts, 2, 3))
+    affine_parameter[:, 0, 0] = (boxes[2]-boxes[0])/2
+    affine_parameter[:, 0, 2] = (boxes[2]+boxes[0])/2
+    affine_parameter[:, 1, 1] = (boxes[3]-boxes[1])/2
+    affine_parameter[:, 1, 2] = (boxes[3]+boxes[1])/2
+    # extract the sub-region heatmap
+    theta = affine_parameter.to(heatmap.device)
+    grid_size = torch.Size([num_pts, 1, radius*2+1, radius*2+1])
+    grid = F.affine_grid(theta, grid_size)
+    sub_feature = F.grid_sample(heatmap.unsqueeze(1), grid).squeeze(1)
+    sub_feature = F.threshold(sub_feature, threshold, np.finfo(float).eps)
+
+    X = torch.arange(-radius, radius+1).to(heatmap).view(1, 1, radius*2+1)
+    Y = torch.arange(-radius, radius+1).to(heatmap).view(1, radius*2+1, 1)
+
+    sum_region = torch.sum(sub_feature.view(num_pts, -1), 1)
+    x = torch.sum((sub_feature*X).view(num_pts, -1), 1) / sum_region + index_w
+    y = torch.sum((sub_feature*Y).view(num_pts, -1), 1) / sum_region + index_h
+
+    x = x * downsample + downsample / 2.0 - 0.5
+    y = y * downsample + downsample / 2.0 - 0.5
+    return torch.stack([x, y], 1), score
 
 
 def conv_bn(inp, oup, stride, conv_layer=nn.Conv2d, norm_layer=nn.BatchNorm2d, nlin_layer=nn.ReLU):
@@ -76,7 +126,7 @@ class MobileBottleneck(nn.Module):
     def __init__(self, inp, oup, kernel, stride, exp, se=False, nl='RE'):
         super(MobileBottleneck, self).__init__()
         assert stride in [1, 2]
-        assert kernel in [1, 3, 5]
+        assert kernel in [3, 5]
         padding = (kernel - 1) // 2
         self.use_res_connect = stride == 1 and inp == oup
 
@@ -117,22 +167,21 @@ class MobileBottleneck(nn.Module):
 
 
 class MobileNetV3(nn.Module):
-    def __init__(self, n_class=1000, input_size=224, dropout=0.8, mode='small', width_mult=1.0):
+    def __init__(self, pts_num=1000, input_size=112, dropout=0.8, mode='small', width_mult=1.0):
         super(MobileNetV3, self).__init__()
         input_channel = 16
-        self.points = n_class//2 + 1
-        last_channel = 1280
-        self.downsample = 4
+        self.pts_num = pts_num
+        last_channel = 512
+        self.downsample = 7
+        self.num_stgs = 3
         if mode == 'small':
             # refer to Table 2 in paper
             cfg_shared = [
                 # k, exp, c,  se,     nl,  s,
                 [3, 16,  16,  True,  'RE', 2],
-            ]
-            cfg = [
-                [3, 72,  24,  False, 'RE', 2],
+                # [3, 72,  24,  False, 'RE', 2],
                 [3, 88,  24,  False, 'RE', 1],
-                [5, 96,  40,  True,  'HS', 2],
+                # [5, 96,  40,  True,  'HS', 2],
                 [5, 240, 40,  True,  'HS', 1],
                 [5, 240, 40,  True,  'HS', 1],
                 [5, 120, 48,  True,  'HS', 1],
@@ -144,12 +193,9 @@ class MobileNetV3(nn.Module):
         else:
             raise NotImplementedError
 
-        # building first layer
-        # assert input_size % 32 == 0
         last_channel = make_divisible(
             last_channel * width_mult) if width_mult > 1.0 else last_channel
         self.features = [conv_bn(3, input_channel, 2, nlin_layer=Hswish)]
-        self.features_lmks = []
         self.classifier = []
 
         # building mobile blocks
@@ -160,52 +206,93 @@ class MobileNetV3(nn.Module):
                 input_channel, output_channel, k, s, exp_channel, se, nl))
             input_channel = output_channel
 
-        output_channel = self.points
-        k = 1
-        s = 1
-        exp_channel = exp
-        self.features.append(MobileBottleneck(
-            input_channel, output_channel, k, s, exp_channel, se, nl))
-        input_channel = output_channel
-
-        for k, exp, c, se, nl, s in cfg:
-            output_channel = make_divisible(c * width_mult)
-            exp_channel = make_divisible(exp * width_mult)
-            self.features_lmks.append(MobileBottleneck(
-                input_channel, output_channel, k, s, exp_channel, se, nl))
-            input_channel = output_channel
-
-        # building last several layers
-        if mode == 'small':
-            last_conv = make_divisible(576 * width_mult)
-            self.features_lmks.append(conv_1x1_bn(
-                input_channel, last_conv, nlin_layer=Hswish))
-            # self.features.append(SEModule(last_conv))  # refer to paper Table2, but I think this is a mistake
-            self.features_lmks.append(nn.AdaptiveAvgPool2d(1))
-            self.features_lmks.append(
-                nn.Conv2d(last_conv, last_channel, 1, 1, 0))
-            self.features_lmks.append(Hswish(inplace=True))
-        else:
-            raise NotImplementedError
+        last_conv = make_divisible(576 * width_mult)
+        self.features.append(conv_1x1_bn(
+            input_channel, last_conv, nlin_layer=Hswish))
+        # self.features.append(SEModule(last_conv))  # refer to paper Table2, but I think this is a mistake
+        # self.features.append(nn.AdaptiveAvgPool2d(1))
+        self.features.append(nn.Conv2d(last_conv, last_channel, 1, 1, 1))
+        self.features.append(Hswish(inplace=True))
 
         # make it nn.Sequential
         self.features = nn.Sequential(*self.features)
-        self.features_lmks = nn.Sequential(*self.features_lmks)
 
         # building classifier
-        self.classifier = nn.Sequential(
-            nn.Dropout(p=dropout),    # refer to paper section 6
-            nn.Linear(last_channel, self.points*2),
-        )
+        # self.classifier = nn.Sequential(
+        #     nn.Dropout(p=dropout),    # refer to paper section 6
+        #     nn.Linear(last_channel, n_class),
+        # )
+
+        self.CPM_feature = nn.Sequential(
+            nn.Conv2d(512, 256, kernel_size=3, padding=1), nn.ReLU(
+                inplace=True),  # CPM_1
+            nn.Conv2d(256, 128, kernel_size=3, padding=1), nn.ReLU(inplace=True))  # CPM_2
+
+        assert self.num_stgs >= 1, 'stages of cpm must >= 1 not : {:}'.format(
+            self.num_stgs)
+        stage1 = nn.Sequential(
+            # nn.Conv2d(128, 128, kernel_size=3,
+            #           padding=1), nn.ReLU(inplace=True),
+            # nn.Conv2d(128, 128, kernel_size=3,
+            #           padding=1), nn.ReLU(inplace=True),
+            nn.Conv2d(128, 128, kernel_size=3,
+                      padding=1), nn.ReLU(inplace=True),
+            nn.Conv2d(128, 128, kernel_size=3,
+                      padding=1), nn.ReLU(inplace=True),
+            nn.Conv2d(128, 512, kernel_size=1,
+                      padding=0), nn.ReLU(inplace=True),
+            nn.Conv2d(512, pts_num, kernel_size=1, padding=0))
+        stages = [stage1]
+        for i in range(1, self.num_stgs):
+            stagex = nn.Sequential(
+                nn.Conv2d(128+pts_num, 128, kernel_size=7,
+                          dilation=1, padding=3), nn.ReLU(inplace=True),
+                # nn.Conv2d(128,         128, kernel_size=7,
+                #           dilation=1, padding=3), nn.ReLU(inplace=True),
+                nn.Conv2d(128,         128, kernel_size=7,
+                          dilation=1, padding=3), nn.ReLU(inplace=True),
+                # nn.Conv2d(128,         128, kernel_size=3,
+                #           dilation=1, padding=1), nn.ReLU(inplace=True),
+                # nn.Conv2d(128,         128, kernel_size=3,
+                #           dilation=1, padding=1), nn.ReLU(inplace=True),
+                nn.Conv2d(128,         128, kernel_size=3,
+                          dilation=1, padding=1), nn.ReLU(inplace=True),
+                nn.Conv2d(128,         128, kernel_size=3,
+                          dilation=1, padding=1), nn.ReLU(inplace=True),
+                nn.Conv2d(128,         128, kernel_size=1,
+                          padding=0), nn.ReLU(inplace=True),
+                nn.Conv2d(128,     pts_num, kernel_size=1, padding=0))
+            stages.append(stagex)
+        self.stages = nn.ModuleList(stages)
 
         self._initialize_weights()
 
     def forward(self, x):
+        assert x.dim() == 4, 'This model accepts 4 dimension input tensor: {}'.format(x.size())
+        batch_size, feature_dim, feature_w = x.size(0), x.size(1), x.size(2)
+        batch_cpms, batch_locs, batch_scos = [], [], []
+
         feature = self.features(x)
-        x = self.features_lmks(feature)
-        x = x.mean(3).mean(2)
-        lmks = self.classifier(x)
-        return [feature], lmks.view(-1, self.points, 2), torch.ones((lmks.shape[0], self.points))
+        # print(feature.shape)
+        xfeature = self.CPM_feature(feature)
+        print(xfeature.shape)
+        for i in range(self.num_stgs):
+            if i == 0:
+                cpm = self.stages[i](xfeature)
+            else:
+                cpm = self.stages[i](torch.cat([xfeature, batch_cpms[i-1]], 1))
+            batch_cpms.append(cpm)
+
+        # The location of the current batch
+        for ibatch in range(batch_size):
+            batch_location, batch_score = find_tensor_peak_batch(
+                batch_cpms[-1][ibatch], 4, self.downsample)
+            batch_locs.append(batch_location)
+            batch_scos.append(batch_score)
+        batch_locs, batch_scos = torch.stack(
+            batch_locs), torch.stack(batch_scos)
+
+        return batch_cpms, batch_locs, batch_scos
 
     def _initialize_weights(self):
         # weight initialization
@@ -233,13 +320,14 @@ def mobilenetv3(pretrained=False, **kwargs):
 
 
 if __name__ == '__main__':
-    net = mobilenetv3(n_class=68*2, input_size=112, width_mult=0.25)
+    net = mobilenetv3(pts_num=68, input_size=112, width_mult=0.25)
     print('mobilenetv3:\n', net)
     print('Total params: %.2fM' % (sum(p.numel()
                                        for p in net.parameters())/1000000.0))
     input_size = (8, 3, 112, 112)
 
     x = torch.randn(input_size)
-    feature, lmks, scos = net(x)
+    batch_cpms, batch_locs, batch_scos = net(x)
 
-    print("feature.shape:{}, lmks.shape:{}, scores.shape:{}".format(feature[0].shape, lmks.shape, scos.shape))
+    print("batch_cpms.len: {}, batch_locs.shape: {}, batch_scos.shape: {}".format(
+        len(batch_cpms), batch_locs.shape, batch_scos.shape))

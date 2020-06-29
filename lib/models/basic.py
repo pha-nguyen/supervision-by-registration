@@ -13,7 +13,7 @@ def obtain_model(configure, points):
   if configure.arch == 'cpm_vgg16':
     net = cpm_vgg16(configure, points)
   elif configure.arch == 'mobilenetv3':
-    net = mobilenetv3(n_class=68*2, input_size=256, width_mult=1.0)
+    net = mobilenetv3(pts_num=points, input_size=112, width_mult=1.0)
   else:
     raise TypeError('Unkonw type : {:}'.format(configure.arch))
   return net
