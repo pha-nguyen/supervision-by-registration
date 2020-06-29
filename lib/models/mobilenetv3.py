@@ -231,10 +231,10 @@ class MobileNetV3(nn.Module):
         assert self.num_stgs >= 1, 'stages of cpm must >= 1 not : {:}'.format(
             self.num_stgs)
         stage1 = nn.Sequential(
-            # nn.Conv2d(128, 128, kernel_size=3,
-            #           padding=1), nn.ReLU(inplace=True),
-            # nn.Conv2d(128, 128, kernel_size=3,
-            #           padding=1), nn.ReLU(inplace=True),
+            nn.Conv2d(128, 128, kernel_size=3,
+                      padding=1), nn.ReLU(inplace=True),
+            nn.Conv2d(128, 128, kernel_size=3,
+                      padding=1), nn.ReLU(inplace=True),
             nn.Conv2d(128, 128, kernel_size=3,
                       padding=1), nn.ReLU(inplace=True),
             nn.Conv2d(128, 128, kernel_size=3,
@@ -247,14 +247,14 @@ class MobileNetV3(nn.Module):
             stagex = nn.Sequential(
                 nn.Conv2d(128+pts_num, 128, kernel_size=7,
                           dilation=1, padding=3), nn.ReLU(inplace=True),
-                # nn.Conv2d(128,         128, kernel_size=7,
-                #           dilation=1, padding=3), nn.ReLU(inplace=True),
                 nn.Conv2d(128,         128, kernel_size=7,
                           dilation=1, padding=3), nn.ReLU(inplace=True),
-                # nn.Conv2d(128,         128, kernel_size=3,
-                #           dilation=1, padding=1), nn.ReLU(inplace=True),
-                # nn.Conv2d(128,         128, kernel_size=3,
-                #           dilation=1, padding=1), nn.ReLU(inplace=True),
+                nn.Conv2d(128,         128, kernel_size=7,
+                          dilation=1, padding=3), nn.ReLU(inplace=True),
+                nn.Conv2d(128,         128, kernel_size=3,
+                          dilation=1, padding=1), nn.ReLU(inplace=True),
+                nn.Conv2d(128,         128, kernel_size=3,
+                          dilation=1, padding=1), nn.ReLU(inplace=True),
                 nn.Conv2d(128,         128, kernel_size=3,
                           dilation=1, padding=1), nn.ReLU(inplace=True),
                 nn.Conv2d(128,         128, kernel_size=3,
@@ -328,5 +328,5 @@ if __name__ == '__main__':
     x = torch.randn(input_size)
     batch_cpms, batch_locs, batch_scos = net(x)
 
-    print("batch_cpms.len: {}, batch_locs.shape: {}, batch_scos.shape: {}".format(
-        len(batch_cpms), batch_locs.shape, batch_scos.shape))
+    print("batch_cpms.shape: {}, batch_locs.shape: {}, batch_scos.shape: {}".format(
+        batch_cpms[0].shape, batch_locs.shape, batch_scos.shape))
