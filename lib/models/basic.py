@@ -5,11 +5,12 @@
 # LICENSE file in the root directory of this source tree.
 #
 from .cpm_vgg16 import cpm_vgg16
+from .pfld import PFLDInference
 from .LK import LK
 
 def obtain_model(configure, points):
-  if configure.arch == 'cpm_vgg16':
-    net = cpm_vgg16(configure, points)
+  if configure.arch == 'pfld':
+    net = PFLDInference(points)
   else:
     raise TypeError('Unkonw type : {:}'.format(configure.arch))
   return net

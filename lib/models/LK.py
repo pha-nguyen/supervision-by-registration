@@ -12,7 +12,6 @@ class LK(nn.Module):
   def __init__(self, model, lkconfig, points):
     super(LK, self).__init__()
     self.detector = model
-    self.downsample = self.detector.downsample
     self.config = copy.deepcopy(lkconfig)
     self.points = points
 
@@ -20,9 +19,8 @@ class LK(nn.Module):
     assert inputs.dim() == 5, 'This model accepts 5 dimension input tensor: {}'.format(inputs.size())
     batch_size, sequence, C, H, W = list( inputs.size() )
     gathered_inputs = inputs.view(batch_size * sequence, C, H, W)
-    heatmaps, batch_locs, batch_scos = self.detector(gathered_inputs)
-    heatmaps = [x.view(batch_size, sequence, self.points, H//self.downsample, W//self.downsample) for x in heatmaps]
-    batch_locs, batch_scos = batch_locs.view(batch_size, sequence, self.points, 2), batch_scos.view(batch_size, sequence, self.points)
+    batch_locs = self.detector(gathered_inputs)
+    batch_locs = batch_locs.view(batch_size, sequence, self.points, 2)
     batch_next, batch_fback, batch_back = [], [], []
 
     for ibatch in range(batch_size):
@@ -33,4 +31,4 @@ class LK(nn.Module):
       batch_fback.append(fbackPts)
       batch_back.append(backPts)
     batch_next, batch_fback, batch_back = torch.stack(batch_next), torch.stack(batch_fback), torch.stack(batch_back)
-    return heatmaps, batch_locs, batch_scos, batch_next, batch_fback, batch_back
+    return batch_locs, batch_next, batch_fback, batch_back

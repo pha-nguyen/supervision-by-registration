@@ -9,11 +9,10 @@ import torch
 import numpy as np
 import pdb, math, numbers
 
-def lk_input_check(batch_locs, batch_scos, batch_next, batch_fback, batch_back):
+def lk_input_check(batch_locs, batch_next, batch_fback, batch_back):
   batch, sequence, num_pts, _ = list(batch_locs.size())
   assert batch_locs.size() == batch_next.size() == batch_fback.size() == batch_back.size(), '{:} vs {:} vs {:} vs {:}'.format(batch_locs.size(), batch_next.size(), batch_fback.size(), batch_back.size())
   assert _ == 2, '{:}'.format(batch_locs.size())
-  assert batch_scos.size(0) == batch and batch_scos.size(1) == sequence and batch_scos.size(2) == num_pts, '{:} vs {:}'.format(batch_locs.size(), batch_scos.size())
   return batch, sequence, num_pts
 
 def p2string(point):
@@ -24,9 +23,9 @@ def p2string(point):
   else:
     return '{}'.format(point)
 
-def lk_target_loss(batch_locs, batch_scos, batch_next, batch_fbak, batch_back, lk_config, video_or_not, mask, nopoints):
+def lk_target_loss(batch_locs, batch_next, batch_fbak, batch_back, lk_config, video_or_not, nopoints):
   # return the calculate target from the first frame to the whole sequence.
-  batch, sequence, num_pts = lk_input_check(batch_locs, batch_scos, batch_next, batch_fbak, batch_back)
+  batch, sequence, num_pts = lk_input_check(batch_locs, batch_next, batch_fbak, batch_back)
 
   # remove the background
   num_pts = num_pts - 1
@@ -36,14 +35,6 @@ def lk_target_loss(batch_locs, batch_scos, batch_next, batch_fbak, batch_back, l
   for ibatch in range(batch):
     if video_or_not[ibatch] == False:
       sequence_checks[ibatch, :] = False
-    else:
-      for iseq in range(sequence):
-        for ipts in range(num_pts):
-          score = batch_scos[ibatch, iseq, ipts]
-          if mask[ibatch, ipts] == False and nopoints[ibatch] == 0:
-            sequence_checks[ibatch, ipts] = False
-          if score.item() < lk_config.conf_thresh:
-            sequence_checks[ibatch, ipts] = False
 
   losses = []
   for ibatch in range(batch):

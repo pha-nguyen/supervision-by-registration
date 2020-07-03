@@ -150,12 +150,8 @@ class GeneralDataset(data.Dataset):
       points = torch.from_numpy(np.zeros((self.NUM_PTS,3))).type(torch.FloatTensor)
       Hpoint = np.zeros((3, self.NUM_PTS))
 
-    heatmaps, mask = generate_label_map(Hpoint, height//self.downsample, width//self.downsample, self.sigma, self.downsample, nopoints, self.heatmap_type) # H*W*C
-
-    heatmaps = torch.from_numpy(heatmaps.transpose((2, 0, 1))).type(torch.FloatTensor)
-    mask     = torch.from_numpy(mask.transpose((2, 0, 1))).type(torch.ByteTensor)
   
     torch_index = torch.IntTensor([index])
     torch_nopoints = torch.ByteTensor( [ nopoints ] )
 
-    return image, heatmaps, mask, points, torch_index, torch_nopoints, ori_size
+    return image, points, torch_index, torch_nopoints, ori_size
