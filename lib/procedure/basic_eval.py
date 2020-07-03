@@ -55,7 +55,9 @@ def basic_eval(args, loader, net, criterion, epoch_str, logger, opt_config):
     forward_time.update(time.time() - end)
 
     if annotated_num > 0:
-      loss = torch.mean(torch.sum((points - batch_locs) * (points - batch_locs), axis=1))
+      _locations = batch_locs[:,:-1,:]
+      _points = points[:, :, :-1]
+      loss = torch.mean(torch.sum((_points - _locations) * (_points - _locations), axis=1))
       # measure accuracy and record loss
       losses.update(loss.item(), batch_size)
     else:
@@ -75,13 +77,13 @@ def basic_eval(args, loader, net, criterion, epoch_str, logger, opt_config):
       locations[:, 0], locations[:, 1] = locations[:, 0] * scale_w + cropped_size[ibatch,2], locations[:, 1] * scale_h + cropped_size[ibatch,3]
       assert xpoints.shape[1] == num_pts and locations.shape[0] == num_pts, 'The number of points is {} vs {} vs {} vs {}'.format(num_pts, xpoints.shape, locations.shape)
       # recover the original resolution
-      # prediction = np.concatenate((locations, scores), axis=1).transpose(1,0)
+      prediction = np.concatenate((locations, torch.ones((locations.size(0), 1))), axis=1).transpose(1,0)
       image_path = loader.dataset.datas[imgidx]
       face_size  = loader.dataset.face_sizes[imgidx]
       if nopoint == 1:
-        eval_meta.append(locations, None, image_path, face_size)
+        eval_meta.append(prediction, None, image_path, face_size)
       else:
-        eval_meta.append(locations, xpoints, image_path, face_size)
+        eval_meta.append(prediction, xpoints, image_path, face_size)
 
     # measure elapsed time
     batch_time.update(time.time() - end)
