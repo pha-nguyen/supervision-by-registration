@@ -13,10 +13,14 @@ if str(lib_dir) not in sys.path: sys.path.insert(0, str(lib_dir))
 assert sys.version_info.major == 3, 'Please upgrade from {:} to Python 3.x'.format(sys.version_info)
 print ('lib-dir : {:}'.format(lib_dir))
 import datasets
+from exps.mtcnn import MTCNN
+import cv2
+import math
+import torch
 
 EXPAND_RATIO = 0.0
 afterfix='.10'
-
+fd = MTCNN(device=torch.device('cuda'))
 
 def str2size(box_str):
   splits = box_str.split(' ')
@@ -66,7 +70,15 @@ def load_video_dir(root, dirs, save_dir, save_name):
   nonefile = open(osp.join(save_dir, save_name + '.none'), 'w')
   for video in videos:
     for cpair in video:
-      box_str = datasets.dataset_utils.for_generate_box_str(cpair[1], 68, EXPAND_RATIO)
+      image = cv2.imread(cpair[0])
+      image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+      bb, score = fd.detect(image)
+      if len(bb):
+        box = list(map(float, bb[0]))
+        box_str = '{:.2f} {:.2f} {:.2f} {:.2f}'.format(box[0], box[1], box[2], box[3])
+      else:
+        print("Fail")
+        box_str = datasets.dataset_utils.for_generate_box_str(cpair[1], 68, EXPAND_RATIO)
       txtfile.write('{} {} {}\n'.format(cpair[0], cpair[1], box_str))
       nonefile.write('{} {} {}\n'.format(cpair[0], 'None', box_str))
       txtfile.flush()
@@ -77,7 +89,15 @@ def load_video_dir(root, dirs, save_dir, save_name):
   txtfile = open(osp.join(save_dir, save_name + '.sparse' + afterfix), 'w')
   nonefile = open(osp.join(save_dir, save_name + '.sparse.none' + afterfix), 'w')
   for cpair in sparse_videos:
-    box_str = datasets.dataset_utils.for_generate_box_str(cpair[1], 68, EXPAND_RATIO)
+    image = cv2.imread(cpair[0])
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    bb, score = fd.detect(image)
+    if len(bb):
+      box = list(map(float, bb[0]))
+      box_str = '{:.2f} {:.2f} {:.2f} {:.2f}'.format(box[0], box[1], box[2], box[3])
+    else:
+      print("Fail")
+      box_str = datasets.dataset_utils.for_generate_box_str(cpair[1], 68, EXPAND_RATIO)
     txtfile.write('{} {} {}\n'.format(cpair[0], cpair[1], box_str))
     nonefile.write('{} {} {}\n'.format(cpair[0], 'None', box_str))
   txtfile.close()
@@ -85,7 +105,15 @@ def load_video_dir(root, dirs, save_dir, save_name):
 
   txtfile = open(osp.join(save_dir, save_name + '.first'), 'w')
   for cpair in first_videos:
-    box_str = datasets.dataset_utils.for_generate_box_str(cpair[1], 68, EXPAND_RATIO)
+    image = cv2.imread(cpair[0])
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    bb, score = fd.detect(image)
+    if len(bb):
+      box = list(map(float, bb[0]))
+      box_str = '{:.2f} {:.2f} {:.2f} {:.2f}'.format(box[0], box[1], box[2], box[3])
+    else:
+      print("Fail")
+      box_str = datasets.dataset_utils.for_generate_box_str(cpair[1], 68, EXPAND_RATIO)
     txtfile.write('{} {} {}\n'.format(cpair[0], cpair[1], box_str))
   txtfile.close()
 
