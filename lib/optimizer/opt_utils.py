@@ -17,7 +17,7 @@ def obtain_optimizer(params, config, logger):
                           alpha = config.alpha, eps=config.epsilon,
                           weight_decay = config.weight_decay)
   elif optimizer == 'adam':
-    opt = torch.optim.Adam(params, lr=config.LR, weight_decay = config.weight_decay)
+    opt = torch.optim.Adam(params, lr=config.LR, weight_decay = config.Decay)
   else:
     raise TypeError('Does not know this optimizer : {:}'.format(config))
 
