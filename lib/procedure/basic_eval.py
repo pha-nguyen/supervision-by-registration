@@ -77,7 +77,7 @@ def basic_eval(args, loader, net, criterion, epoch_str, logger, opt_config):
       locations[:, 0], locations[:, 1] = locations[:, 0] * scale_w + cropped_size[ibatch,2], locations[:, 1] * scale_h + cropped_size[ibatch,3]
       assert xpoints.shape[1] == num_pts and locations.shape[0] == num_pts, 'The number of points is {} vs {} vs {} vs {}'.format(num_pts, xpoints.shape, locations.shape)
       # recover the original resolution
-      prediction = np.concatenate((locations, torch.ones((locations.size(0), 1))), axis=1).transpose(1,0)
+      prediction = np.concatenate((locations, np.ones((locations.shape[0], 1))), axis=1).transpose(1,0)
       image_path = loader.dataset.datas[imgidx]
       face_size  = loader.dataset.face_sizes[imgidx]
       if nopoint == 1:
