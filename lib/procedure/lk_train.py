@@ -48,7 +48,7 @@ def lk_train(args, loader, net, criterion, optimizer, epoch_str, logger, opt_con
 
     if annotated_num > 0:
       # have the detection loss
-      _locations = batch_locs[:,:-1,:]
+      _locations = batch_locs[:, batch_locs.size(1)//2, :-1, :]
       _points = points[:, :, :-1].to(_locations.device)
       detloss = torch.mean(torch.sum((_points - _locations) * (_points - _locations), axis=1))
       detlosses.update(detloss.item(), batch_size)

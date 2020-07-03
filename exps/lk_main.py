@@ -142,7 +142,7 @@ def main(args):
 
   detector = torch.nn.DataParallel(net.module.detector)
 
-  eval_results = eval_all(args, eval_loaders, detector, criterion, 'start-eval', logger, opt_config)
+  # eval_results = eval_all(args, eval_loaders, detector, criterion, 'start-eval', logger, opt_config)
   if args.eval_once:
     logger.log("=> only evaluate the model once")
     logger.close() ; return
