@@ -34,13 +34,13 @@ def obtain_args():
   # Optimization options
   parser.add_argument('--eval_once',        action='store_true',        help='evaluation only once for evaluation ')
   parser.add_argument('--error_bar',        type=float,                 help='For drawing the image with large distance error.')
-  parser.add_argument('--batch_size',       type=int,   default=128,      help='Batch size for training.')
+  parser.add_argument('--batch_size',       type=int,   default=2,      help='Batch size for training.')
   # Checkpoints
-  parser.add_argument('--print_freq',       type=int,   default=100,    help='print frequency (default: 200)')
+  parser.add_argument('--print_freq',       type=int,   default=10,    help='print frequency (default: 200)')
   parser.add_argument('--init_model',       type=str,                   help='The detector model to be initalized.')
   parser.add_argument('--save_path',        type=str,                   help='Folder to save checkpoints and log.')
   # Acceleration
-  parser.add_argument('--workers',          type=int,   default=32,      help='number of data loading workers (default: 2)')
+  parser.add_argument('--workers',          type=int,   default=8,      help='number of data loading workers (default: 2)')
   # Random Seed
   parser.add_argument('--rand_seed',        type=int,                   help='manual seed')
   args = parser.parse_args()

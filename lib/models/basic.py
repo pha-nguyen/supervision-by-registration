@@ -7,6 +7,7 @@
 # from .cpm_vgg16 import cpm_vgg16
 from .pfld import PFLDInference
 from .LK import LK
+import torch
 
 def obtain_model(configure, points):
   if configure.arch == 'pfld':
@@ -17,5 +18,8 @@ def obtain_model(configure, points):
 
 def obtain_LK(configure, lkconfig, points):
   model = obtain_model(configure, points)
+
+  checkpoint = torch.load("/home/ubuntu/checkpoint_epoch_969.pth.tar")
+  model.load_state_dict(checkpoint["state_dict"], strict=False)
   lk_model = LK(model, lkconfig, points)
   return lk_model
