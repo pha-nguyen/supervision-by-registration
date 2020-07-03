@@ -95,7 +95,7 @@ def main(args):
   logger.log('model configure : {:}'.format(model_config))
   logger.log('LK configure : {:}'.format(lk_config))
   net = obtain_model(model_config, lk_config, args.num_pts + 1)
-  assert model_config.downsample == net.downsample, 'downsample is not correct : {} vs {}'.format(model_config.downsample, net.downsample)
+
   logger.log("=> network :\n {}".format(net))
 
   logger.log('Training-data : {:}'.format(train_data))
