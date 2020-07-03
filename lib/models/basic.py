@@ -4,7 +4,7 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 #
-from .cpm_vgg16 import cpm_vgg16
+# from .cpm_vgg16 import cpm_vgg16
 from .pfld import PFLDInference
 from .LK import LK
 
