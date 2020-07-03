@@ -56,7 +56,7 @@ def basic_eval(args, loader, net, criterion, epoch_str, logger, opt_config):
 
     if annotated_num > 0:
       _locations = batch_locs[:,:-1,:]
-      _points = points[:, :, :-1]
+      _points = points[:, :, :-1].to(_locations.device)
       loss = torch.mean(torch.sum((_points - _locations) * (_points - _locations), axis=1))
       # measure accuracy and record loss
       losses.update(loss.item(), batch_size)
