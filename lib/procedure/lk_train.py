@@ -42,7 +42,7 @@ def lk_train(args, loader, net, criterion, optimizer, epoch_str, logger, opt_con
     data_time.update(time.time() - end)
 
     # batch_heatmaps is a list for stage-predictions, each element should be [Batch, Sequence, PTS, H/Down, W/Down]
-    batch_locs, batch_next, batch_fback, batch_back = net(inputs)
+    batch_locs, batch_next, batch_fback, batch_back = net(inputs, use_lk)
 
     forward_time.update(time.time() - end)
 

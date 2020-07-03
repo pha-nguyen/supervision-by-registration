@@ -14,7 +14,6 @@ from .initialization import weights_init_cpm
 def obtain_model(configure, points):
   if configure.arch == 'pfld':
     net = PFLDInference(points)
-    net.apply(weights_init_cpm)
   else:
     raise TypeError('Unkonw type : {:}'.format(configure.arch))
   return net
