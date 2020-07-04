@@ -73,7 +73,7 @@ def load_video_dir(root, dirs, save_dir, save_name):
       image = cv2.imread(cpair[0])
       image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
       bb, score = fd.detect(image)
-      if len(bb):
+      if bb is not None and len(bb):
         box = list(map(float, bb[0]))
         box_str = '{:.2f} {:.2f} {:.2f} {:.2f}'.format(box[0], box[1], box[2], box[3])
       else:
@@ -92,7 +92,7 @@ def load_video_dir(root, dirs, save_dir, save_name):
     image = cv2.imread(cpair[0])
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     bb, score = fd.detect(image)
-    if len(bb):
+    if bb is not None and len(bb):
       box = list(map(float, bb[0]))
       box_str = '{:.2f} {:.2f} {:.2f} {:.2f}'.format(box[0], box[1], box[2], box[3])
     else:
@@ -108,7 +108,7 @@ def load_video_dir(root, dirs, save_dir, save_name):
     image = cv2.imread(cpair[0])
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     bb, score = fd.detect(image)
-    if len(bb):
+    if bb is not None and len(bb):
       box = list(map(float, bb[0]))
       box_str = '{:.2f} {:.2f} {:.2f} {:.2f}'.format(box[0], box[1], box[2], box[3])
     else:
