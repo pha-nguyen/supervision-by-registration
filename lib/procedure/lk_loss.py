@@ -38,7 +38,7 @@ def lk_target_loss(batch_locs, batch_next, batch_fbak, batch_back, lk_config, vi
     else:
       for ipts in range(num_pts):
 
-        _locations = batch_locs[ibatch, batch_locs.size(1)//2, ipts, :]
+        _locations = batch_locs[ibatch, batch_locs.size(1)//2, ipts, :].cpu()
         _points = points[ibatch, ipts, :-1].cpu()
         dist = torch.dist(_locations, _points).cpu().detach().numpy().astype(np.int)
         print(dist)
