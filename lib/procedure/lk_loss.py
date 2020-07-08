@@ -39,9 +39,11 @@ def lk_target_loss(batch_locs, batch_next, batch_fbak, batch_back, lk_config, vi
       for ipts in range(num_pts):
 
         _locations = batch_locs[ibatch, batch_locs.size(1)//2, ipts, :]
-        _points = points[ibatch, ipts, :-1].to(_locations.device)
-        dist = torch.dist(_locations, _points)
-        sequence_checks[ibatch, ipts] = True if dist <= lk_config.window else False
+        _points = points[ibatch, ipts, :-1].cpu()
+        dist = torch.dist(_locations, _points).cpu().detach().numpy().astype(np.int)
+        print(dist)
+        if dist > lk_config.window:
+          sequence_checks[ibatch, ipts] = False
 
   losses = []
   for ibatch in range(batch):
