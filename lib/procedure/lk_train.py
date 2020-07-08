@@ -56,7 +56,7 @@ def lk_train(args, loader, net, criterion, optimizer, epoch_str, logger, opt_con
       detloss = 0
 
     if use_lk:
-      lkloss, avaliable = lk_target_loss(batch_locs, batch_next, batch_fback, batch_back, lk_config, video_or_not, nopoints)
+      lkloss, avaliable = lk_target_loss(batch_locs, batch_next, batch_fback, batch_back, lk_config, video_or_not, nopoints, points)
       if lkloss is not None:
         lklosses.update(lkloss.item(), avaliable)
       else: lkloss = 0

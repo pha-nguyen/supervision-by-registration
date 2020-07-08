@@ -63,7 +63,7 @@ def main(args):
 
     net = net.cuda()
     net = torch.nn.DataParallel(net)
-    checkpoint = torch.load("snapshots/checkpoint/pfld-epoch-012-500.pth")
+    checkpoint = torch.load("snapshots/checkpoint/pfld-epoch-138-500.pth")
     net.load_state_dict(checkpoint['state_dict'], strict=False)
 
     detector = torch.nn.DataParallel(net.module.detector)

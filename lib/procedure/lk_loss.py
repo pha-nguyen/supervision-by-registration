@@ -23,7 +23,7 @@ def p2string(point):
   else:
     return '{}'.format(point)
 
-def lk_target_loss(batch_locs, batch_next, batch_fbak, batch_back, lk_config, video_or_not, nopoints):
+def lk_target_loss(batch_locs, batch_next, batch_fbak, batch_back, lk_config, video_or_not, nopoints, points):
   # return the calculate target from the first frame to the whole sequence.
   batch, sequence, num_pts = lk_input_check(batch_locs, batch_next, batch_fbak, batch_back)
 
@@ -35,6 +35,13 @@ def lk_target_loss(batch_locs, batch_next, batch_fbak, batch_back, lk_config, vi
   for ibatch in range(batch):
     if video_or_not[ibatch] == False:
       sequence_checks[ibatch, :] = False
+    else:
+      for ipts in range(num_pts):
+
+        _locations = batch_locs[ibatch, batch_locs.size(1)//2, ipts, :]
+        _points = points[ibatch, ipts, :-1].to(_locations.device)
+        dist = torch.dist(_locations, _points)
+        sequence_checks[ibatch, ipts] = True if dist <= lk_config.window else False
 
   losses = []
   for ibatch in range(batch):
