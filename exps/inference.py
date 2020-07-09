@@ -26,6 +26,20 @@ import math
 def preprocess(image, box):
     pass
 
+def make_box_square(box):
+    x,y, x1, y1 = box
+    # Get mid point
+    mx = (x+x1)//2
+    my = (y+y1)//2
+    # Padding from the middle
+    pad = max(x1-x, y1-y)//2
+    x = mx-pad
+    y = my-pad
+    x1 = mx + pad
+    y1 = my+pad
+    return [x, y, x1, y1]
+
+
 def main(args):
     assert torch.cuda.is_available(), 'CUDA is not available.'
     torch.backends.cudnn.enabled = True
@@ -65,15 +79,15 @@ def main(args):
 
     net = net.cuda()
     net = torch.nn.DataParallel(net)
-    checkpoint = torch.load("snapshots/checkpoint/cpm_vgg16-epoch-011-050.pth")
+    checkpoint = torch.load("snapshots/small/sbr_wo-crop_wo-lk-027.pth")
     net.load_state_dict(checkpoint['state_dict'], strict=False)
 
     detector = torch.nn.DataParallel(net.module.detector)
     detector.eval()
 
 
-    cap = cv2.VideoCapture('/home/vinai/Desktop/VID_20200630_221121_970.mp4')
-    out = cv2.VideoWriter('/home/vinai/Desktop/out.avi',cv2.VideoWriter_fourcc('M','J','P','G'), 25, (int(1080),int(1920)))
+    cap = cv2.VideoCapture('/home/vinai/Desktop/VID_20200708_235858_350.mp4')
+    out = cv2.VideoWriter('/home/vinai/Desktop/sbr_wo-crop_wo-lk-027.avi',cv2.VideoWriter_fourcc('M','J','P','G'), 25, (int(1080),int(1920)))
 
     # image = cv2.imread("/home/vinai/Desktop/IMG_2363.JPG")
     first = True
@@ -88,14 +102,16 @@ def main(args):
             bb, score = fd.detect(image)
             bb = list(map(int, bb[0]))
             first = False
-            tracker = cv2.TrackerKCF_create()
-            tracker.init(image, (bb[0], bb[1], bb[2] - bb[0], bb[3] - bb[1]))
+            # tracker = cv2.TrackerKCF_create()
+            # tracker.init(image, (bb[0], bb[1], bb[2] - bb[0], bb[3] - bb[1]))
         else:
 
-            ok, bb = tracker.update(image)
-            bb = list(bb)
-            bb[2] += bb[0]
-            bb[3] += bb[1]
+            # ok, bb = tracker.update(image)
+            # bb = list(bb)
+            # bb[2] += bb[0]
+            # bb[3] += bb[1]
+            bb, score = fd.detect(image)
+            bb = make_box_square(list(map(int, bb[0])))
         h, w = (bb[3] - bb[1])*0.2, (bb[2] - bb[0])*0.2
         x1, y1 = int(max(math.floor(bb[0]-w), 0)), int(max(math.floor(bb[1]-h), 0))
         x2, y2 = int(min(math.ceil(bb[2]+w), iw)), int(min(math.ceil(bb[3]+h), ih))
