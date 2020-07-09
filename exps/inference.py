@@ -70,8 +70,8 @@ def main(args):
     detector.eval()
 
 
-    cap = cv2.VideoCapture('/home/vinai/Desktop/VID_20200630_221121_970.mp4')
-    out = cv2.VideoWriter('/home/vinai/Desktop/out.avi',cv2.VideoWriter_fourcc('M','J','P','G'), 25, (int(1080),int(1920)))
+    cap = cv2.VideoCapture('/home/vinai/Desktop/vid.avi')
+    out = cv2.VideoWriter('/home/vinai/Desktop/out.avi',cv2.VideoWriter_fourcc('M','J','P','G'), 25, (int(1280),int(720)))
 
     # image = cv2.imread("/home/vinai/Desktop/IMG_2363.JPG")
     first = True
@@ -79,7 +79,7 @@ def main(args):
         ret, image = cap.read()
         if image is None:
             break
-        image = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        # image = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
         ih, iw = image.shape[0], image.shape[1]
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         if first:
@@ -117,7 +117,7 @@ def main(args):
 
         for i in locations:
             cv2.circle(image, (i[0], i[1]), 2, (255, 0, 0), 2)
-        cv2.rectangle(image, (x1, y1), (x2, y2), (255, 0, 0), 3)
+        # cv2.rectangle(image, (x1, y1), (x2, y2), (255, 0, 0), 3)
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
         out.write(image)
     cap.release()
