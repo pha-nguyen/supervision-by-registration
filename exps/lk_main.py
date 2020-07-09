@@ -133,7 +133,7 @@ def main(args):
     assert init_model.exists(), 'init-model {:} does not exist'.format(init_model)
     checkpoint = torch.load(init_model)
     # checkpoint = remove_module_dict(checkpoint['state_dict'], True)
-    net.load_state_dict(checkpoint['state_dict'], strict=False)
+    net.load_state_dict(checkpoint['state_dict'], strict=True)
     logger.log("=> initialize the detector : {:}".format(init_model))
     start_epoch = 0
   else:
@@ -142,7 +142,7 @@ def main(args):
 
   detector = torch.nn.DataParallel(net.module.detector)
   detector.eval()
-  eval_results = eval_all(args, eval_loaders, detector, criterion, 'start-eval', logger, opt_config)
+  # eval_results = eval_all(args, eval_loaders, detector, criterion, 'start-eval', logger, opt_config)
   if args.eval_once:
     logger.log("=> only evaluate the model once")
     logger.close() ; return
